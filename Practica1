@@ -1,0 +1,281 @@
+package com.mycompany.pacman;
+
+import java.util.Scanner;
+import java.util.Random;
+
+public class PacMan {
+
+    static String[] historialUsuarios = new String[100];
+    static int[] historialPuntos = new int[100];
+    static int contadorPartidas = 0;
+
+    static Scanner sc = new Scanner(System.in);
+    static Random rnd = new Random();
+
+    public static void main(String[] args) {
+
+        int opcion;
+
+        do {
+
+            System.out.println("\n MENÚ DE INICIO ");
+            System.out.println("1. Iniciar Juego");
+            System.out.println("2. Historial de partidas");
+            System.out.println("3. Salir");
+            System.out.print("Seleccione una opción: ");
+
+            opcion = sc.nextInt();
+            sc.nextLine();
+
+            switch (opcion) {
+
+                case 1:
+                    iniciarJuego();
+                    break;
+
+                case 2:
+                    mostrarHistorial();
+                    break;
+
+                case 3:
+                    System.out.println("Saliendo");
+                    break;
+
+                default:
+                    System.out.println("Opción inválida.");
+
+            }
+
+        } while (opcion != 3);
+
+    }
+
+    public static void iniciarJuego() {
+
+        System.out.print("Ingrese nombre: ");
+        String usuario = sc.nextLine();
+
+        System.out.print("Tipo tablero (P/G): ");
+        char tipo = sc.next().toUpperCase().charAt(0);
+
+        int filas = (tipo == 'G') ? 10 : 5;
+        int columnas = (tipo == 'G') ? 10 : 6;
+
+        int totalEspacios = filas * columnas;
+
+        int maxPremios = (int)(totalEspacios * 0.40);
+        int maxParedes = (int)(totalEspacios * 0.20);
+        int maxTrampas = (int)(totalEspacios * 0.20);
+
+        int premios;
+        int paredes;
+        int trampas;
+
+        do {
+            System.out.print("Premios (1-" + maxPremios + "): ");
+            premios = sc.nextInt();
+        } while (premios < 1 || premios > maxPremios);
+
+        do {
+            System.out.print("Paredes (1-" + maxParedes + "): ");
+            paredes = sc.nextInt();
+        } while (paredes < 1 || paredes > maxParedes);
+
+        do {
+            System.out.print("Fantasmas (1-" + maxTrampas + "): ");
+            trampas = sc.nextInt();
+        } while (trampas < 1 || trampas > maxTrampas);
+
+        char[][] tablero = new char[filas][columnas];
+
+        inicializarTablero(tablero);
+
+        int especiales = premios / 3;
+
+        colocarAleatorio(tablero, premios, '0');
+        colocarAleatorio(tablero, paredes, 'X');
+        colocarAleatorio(tablero, trampas, '@');
+        colocarAleatorio(tablero, especiales, '$');
+
+        int totalPremios = premios + especiales;
+
+        imprimirTablero(tablero, usuario, 0, 3);
+
+        int f;
+        int c;
+
+        while (true) {
+
+            System.out.print("Fila inicial: ");
+            f = sc.nextInt();
+
+            System.out.print("Columna inicial: ");
+            c = sc.nextInt();
+
+            if (f >= 0 && f < filas && c >= 0 && c < columnas
+                    && tablero[f][c] != 'X'
+                    && tablero[f][c] != '@') {
+                break;
+            }
+
+            System.out.println("Posición inválida.");
+
+        }
+
+        jugar(tablero, f, c, usuario, totalPremios);
+
+    }
+
+    public static void inicializarTablero(char[][] t) {
+
+        for (int i = 0; i < t.length; i++) {
+
+            for (int j = 0; j < t[0].length; j++) {
+
+                t[i][j] = ' ';
+
+            }
+
+        }
+
+    }
+
+    public static void colocarAleatorio(char[][] t, int cantidad, char item) {
+
+        int colocados = 0;
+        int intentos = 0;
+        int maxIntentos = t.length * t[0].length * 10;
+
+        while (colocados < cantidad && intentos < maxIntentos) {
+
+            int f = rnd.nextInt(t.length);
+            int c = rnd.nextInt(t[0].length);
+
+            if (t[f][c] == ' ') {
+
+                t[f][c] = item;
+                colocados++;
+
+            }
+
+            intentos++;
+
+        }
+
+    }
+
+    public static void jugar(char[][] t, int f, int c, String usuario, int totalPremios) {
+
+        int vidas = 3;
+        int puntos = 0;
+        int premiosComidos = 0;
+        boolean activo = true;
+
+        while (activo && vidas > 0) {
+
+            char celda = t[f][c];
+
+            if (celda == '0') {
+                puntos += 10;
+                premiosComidos++;
+            }
+            else if (celda == '$') {
+                puntos += 15;
+                premiosComidos++;
+            }
+            else if (celda == '@') {
+                vidas--;
+                System.out.println("Has chocado con un Fantasma, Pierdes vida");
+            }
+
+            t[f][c] = '<';
+
+            imprimirTablero(t, usuario, puntos, vidas);
+
+            if (premiosComidos >= totalPremios) {
+                System.out.println("Haz Ganado");
+                break;
+            }
+
+            System.out.print("Mover (8=Arriba 5=Abajo 4=Izq 6=Der F=Salir): ");
+
+            char mov = sc.next().toUpperCase().charAt(0);
+
+            if (mov == 'F') {
+                activo = false;
+                break;
+            }
+
+            int nuevaF = f;
+            int nuevaC = c;
+
+            if (mov == '8')
+                nuevaF = (f - 1 + t.length) % t.length;
+
+            else if (mov == '5')
+                nuevaF = (f + 1) % t.length;
+
+            else if (mov == '4')
+                nuevaC = (c - 1 + t[0].length) % t[0].length;
+
+            else if (mov == '6')
+                nuevaC = (c + 1) % t[0].length;
+
+            if (t[nuevaF][nuevaC] != 'X') {
+
+                t[f][c] = ' ';
+                f = nuevaF;
+                c = nuevaC;
+
+            }
+            else {
+
+                System.out.println("Hay una pared!");
+
+            }
+
+        }
+
+        if (contadorPartidas < 100) {
+
+            historialUsuarios[contadorPartidas] = usuario;
+            historialPuntos[contadorPartidas] = puntos;
+            contadorPartidas++;
+
+        }
+
+        System.out.println("Juego terminado. Puntos: " + puntos);
+
+    }
+
+    public static void imprimirTablero(char[][] t, String usuario, int puntos, int vidas) {
+
+        System.out.println("\nUsuario: " + usuario + "  Puntos: " + puntos + "  Vidas: " + vidas);
+
+        for (int i = 0; i < t.length; i++) {
+
+            for (int j = 0; j < t[0].length; j++) {
+
+                System.out.print("[" + t[i][j] + "]");
+
+            }
+
+            System.out.println();
+
+        }
+
+    }
+
+    public static void mostrarHistorial() {
+
+        System.out.println("\n HISTORIAL ");
+
+        for (int i = contadorPartidas - 1; i >= 0; i--) {
+
+            System.out.println(historialUsuarios[i] + " - " + historialPuntos[i] + " puntos");
+
+        }
+
+    }
+
+}
